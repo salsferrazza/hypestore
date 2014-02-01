@@ -34,6 +34,23 @@
 <p>Hypestore (HYPErtext STORage Engine) is a storage engine and coordinator for Hypertext.  Hypestore provides a frictionless way for applications using HTTP as a wire protocol to persist entity state.  It does it's best not to be too picky about what you throw at it, just don't cross RFC 2616.  Together, we'll be <code>200 OK</code>.</p>
 
 <h3>
+<a name="synopsis" class="anchor" href="#synopsis"><span class="octicon octicon-link"></span></a>Synopsis</h3>
+
+<p>
+For request URL: http://hypestore.org/music/artist/prince/albums/1999/Little%20Red%20Corvette.wav
+
+Content-Type: audio/vnd.wave`
+
+Content-Length: 70790540`
+
+POST /music/artist/prince/albums/1999/Little%20Red%20Corvette.wav`
+
+Hypestore.org's Hypestore server receives the POST request, and stores the appropriate media asset in it's volume earmarked for storage (directly attached or "backless"). This is helpful, since the file will be available for Hypestore to respond with when the next GET /music/artist/prince/albums/1999/Little%20Red%20Corvette.wav comes around.
+
+</p>
+
+
+<h3>
 <a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting Started</h3>
 
 <p>For now, just inhale the vaporware.  If you are impatient, write it and then issue a pull request.  I'd love to use it.</p>
