@@ -32,7 +32,7 @@ if (!config) {
 }
 
 // GET 
-app.get("/:url", function (req, res) {
+app.get("/:resource", function (req, res) {
 
     console.log("req: " + util.inspect(req));
 
@@ -43,11 +43,13 @@ app.get("/:url", function (req, res) {
     requestState.method = req.method;
 
     var file;
-    if (!req.params.url) {
+    if (!req.params.resource) {
 	file = config.storage.contentLocation + "/index.html";
     } else {
-	file = config.storage.contentLocation + req.params.url;
+	file = config.storage.contentLocation + "/" + req.params.resource;
     }
+
+    requestState.requestedFile = file;
     
     fs.readFile(file, function (err, data) {
 	
@@ -55,17 +57,82 @@ app.get("/:url", function (req, res) {
 	    console.log("error opening file: " + file + ": " + util.inspect(err));
 	    
 	    if (err.errno == 34) { // No such file or directory
-		res.send(404, file); 
+		requestState.responseCode = 404;
+		res.json(404, requestState); 
 	    } else {
-		res.send(500, util.inspect(err));
+		res.json(500, err);
 	    }
 
 	} else {
 	    console.log("found data in " + file);
+	    
+	    console.log("\n\n" + util.inspect(data));
+
+	    // TODO:
+
+	    // lookup content type of file from original submission
+	    // set content-type header
+	    	    
+	    res.header('Content-Type', 'text/html');
 	    res.send(200, data);
+
 	}
 
     });
+
+});
+
+// PUT 
+
+app.put("/:resource", function (req, res) {
+
+    // TODO: 
+    //
+    // map file extension to MIME
+    // validate known MIME types against client Accept header, 4xx Not Acceptable if no match
+
+
+    var requestState = {};
+
+    requestState.headers = req.headers;
+    requestState.url = req.url;
+    requestState.method = req.method;
+
+    var file;
+    if (!req.params.resource) {
+	file = config.storage.contentLocation + "/index.html";
+    } else {
+	file = config.storage.contentLocation + "/" + req.params.resource;
+    }
+
+    requestState.requestedFile = file;
+
+    // PUT means we're replacing the entire thing
+    fs.writeFile(file, req.body, function (err) {
+	
+	if (err) {
+	    console.log("error writing to file: " + file);
+	    res.json(500, err);
+	} else {
+	    res.send(204);
+	}
+    
+    });
+
+
+});
+
+// POST -> should this even exist?  
+app.post("/:resource", function (req, res) {
+
+
+    // TODO:
+
+    // open file for writing 
+
+
+    res.json(405, { message: "Hyperstore supports HTTP methods: GET, PUT, DELETE" });
+
 });
 
 function loadConfig() {
