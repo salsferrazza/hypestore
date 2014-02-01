@@ -1,10 +1,9 @@
 {
-    "config" : {
+	"port" : "8888",
         "storage" : {
             "contentLocation" : "/tmp/hypestore"
         },
 	"replicas" : {
 	    
 	}
-    }
 }
