@@ -1,0 +1,7 @@
+{
+    "config" : {
+        "storage" : {
+        "contentLocation" : "/tmp/hypestore"
+        }   
+    }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "hypestore",
+  "version": "0.0.1",
+  "description": "HYPErtext STORage Engine",
+  "main": "app.js",
+  "dependencies": {
+    "express": "~3.4.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salsferrazza/hypestore.git"
+  },
+  "keywords": [
+    "HTTP",
+    "database",
+    "RFC2616",
+    "content management",
+    "REST",
+    "API"
+  ],
+  "author": "Salvatore Sferrazza",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/salsferrazza/hypestore/issues"
+  },
+  "homepage": "https://github.com/salsferrazza/hypestore"
+}
