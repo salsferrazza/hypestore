@@ -38,7 +38,20 @@ if (!config) {
 	    server.listen(config.port);
 	    console.log("Listening on port: " + config.port);
 	} else {
-	    console.log("FATAL: location " + config.storage.contentLocation + " specified in config.json could not be found.");
+	    console.log("WARNING: location " + config.storage.contentLocation + " specified in config.json could not be found.  Trying to create...");
+	    
+	    fs.mkdir(config.storage.contentLocation, function (exception) {
+
+		if (exception) {
+		    console.log("FATAL: Could not create directory " + config.storage.contentLocation);
+		} else {
+		    console.log("created directory " + config.storage.contentLocation);
+		    server.listen(config.port);
+		    console.log("Listening on port: " + config.port);
+		}
+		
+	    });
+
 	}
     
     });
@@ -88,7 +101,6 @@ app.get("/:resource", function (req, res) {
 	    // lookup content type of file from original submission
 	    // set content-type header
 	    	    
-	    res.header('Content-Type', 'text/html');
 	    res.send(200, data);
 
 	}
