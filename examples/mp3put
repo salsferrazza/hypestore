@@ -1,0 +1,5 @@
+#!/bin/bash
+
+curl -v -H "Content-Type: audio/mp3" -X PUT --data "@audiocaptcha.mp3" http://localhost:8888/audiocaptcha.mp3
+
+ls -latr ../htdocs/audiocaptcha.mp3
