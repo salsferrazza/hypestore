@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export DEBUG=express:*
+
 echo starting hypestore...
 
 node hypestore

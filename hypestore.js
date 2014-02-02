@@ -60,7 +60,7 @@ if (!config) {
 // GET 
 app.get("/:resource", function (req, res) {
 
-    console.log("req: " + util.inspect(req));
+    // TODO: filter for hypestore administrative pages (_ prefixed?)
 
     var requestState = {};
 
@@ -76,8 +76,6 @@ app.get("/:resource", function (req, res) {
     }
 
     requestState.requestedFile = file;
-    
-    console.log("requestState: " + requestState);
 
     fs.readFile(file, function (err, data) {
 	
@@ -132,6 +130,8 @@ app.put("/:resource", function (req, res) {
     }
 
     requestState.requestedFile = file;
+
+    console.log("req.files: " + util.inspect(req.files));
     
     console.log("file to write to: " + file);
     //console.log("requestState: " + util.inspect(requestState));
@@ -140,7 +140,7 @@ app.put("/:resource", function (req, res) {
 
     getRawBody(req, { length: req.headers['Content-Length'] }, function(err, buffer) {
 
-	//console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
+	console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
 	
 	if (err) {
 	    
