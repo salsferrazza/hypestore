@@ -170,8 +170,8 @@ app.put("/:resource", function (req, res) {
 });
 
 
-// PUT 
-app.put("/:resource", function (req, res) {
+// DELETE
+app.delete("/:resource", function (req, res) {
 
     res.send(204);
 
