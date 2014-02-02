@@ -110,7 +110,7 @@ app.get("/:resource", function (req, res) {
 // PUT 
 app.put("/:resource", function (req, res) {
 
-    // TODO: 
+`    // TODO: 
     //
     // - map file extension to MIME
     // - validate known MIME types against client Accept header, 4xx Not Acceptable if no match
@@ -169,10 +169,19 @@ app.put("/:resource", function (req, res) {
 
 });
 
+
+// PUT 
+app.put("/:resource", function (req, res) {
+
+    res.send(204);
+
+});
+
 // POST -> should this even exist?  
 app.post("/:resource", function (req, res) {
 
-    res.json(405, { message: "Hypestore supports HTTP methods: GET, PUT, DELETE" });
+    // militant idempotency
+    res.json(405, { message: "Hypestore is militantly idempotent and only supports the HTTP methods GET, PUT and DELETE" });
 
 });
 
