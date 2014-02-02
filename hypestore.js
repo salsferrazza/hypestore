@@ -57,6 +57,11 @@ if (!config) {
     });
 }
 
+
+// TODO: HEAD and GET use same code until the point of reading media off storage
+//     : Store MD5 of submitted request bodies?
+
+
 // GET 
 app.get("/:resource", function (req, res) {
 

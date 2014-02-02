@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Submit simple ASCII content
 curl  -i -v -H "Accept: application/json" -H "Content-type: text/plain" -X PUT -d "phone=1-800-999-9999" http://localhost:8888/person1_num6
 
+# file should be in local content directory
 ls -latr ../htdocs/person1_num6
+
+# TODO: immediately generate HEAD request and validate content-length
