@@ -146,8 +146,6 @@ app.put("/:resource", function (req, res) {
 
 	} else {
 
-	    // TODO: write buffer to file
-
 	    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
 		
 		if (err) {
