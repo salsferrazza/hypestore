@@ -1,3 +1,7 @@
+// hypestore - HYPErtext STORage Engine
+//
+// rfc2616 server supporting transparent content 
+// storage and retrieval over HTTP
 
 var express = require('express');
 var fs = require('fs');
@@ -24,13 +28,20 @@ app.use(express.static(__dirname + '/public'));
 var config = loadConfig();
 
 if (!config) {
-    console.log("FATAL: No config, exiting.");
+    console.log("FATAL: No config.json in current directory, exiting.");
 } else {
  
-    // TODO: check content directory exists
-    console.log("found config: " + util.inspect(config));
-    server.listen(config.port);
-    console.log("Listening on port: " + config.port);
+    fs.exists(config.storage.contentLocation, function (exists) {
+
+	if (exists) {
+	    console.log("found content directory " + config.storage.contentLocation);
+	    server.listen(config.port);
+	    console.log("Listening on port: " + config.port);
+	} else {
+	    console.log("FATAL: location " + config.storage.contentLocation + " specified in config.json could not be found.");
+	}
+    
+    });
 }
 
 // GET 
