@@ -166,12 +166,6 @@ app.put("/:resource", function (req, res) {
 // POST -> should this even exist?  
 app.post("/:resource", function (req, res) {
 
-
-    // TODO:
-
-    // open file for writing 
-
-
     res.json(405, { message: "Hypestore supports HTTP methods: GET, PUT, DELETE" });
 
 });
