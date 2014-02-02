@@ -132,26 +132,32 @@ app.put("/:resource", function (req, res) {
     }
 
     requestState.requestedFile = file;
-
-    console.log("requestState: " + util.inspect(requestState));
-    console.log("contents of file: " + util.inspect(req));
-    console.log("content type: " + req.get('Content-Type'));
+    
+    console.log("file to write to: " + file);
+    //console.log("requestState: " + util.inspect(requestState));
+    //console.log("contents of file: " + util.inspect(req));
+    //console.log("content type: " + req.get('Content-Type'));
 
     getRawBody(req, { length: req.headers['Content-Length'] }, function(err, buffer) {
 
+	//console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
+	
 	if (err) {
 	    
 	    console.log("error getting raw body: " + util.inspect(err));
 	    res.json(500, err);
 
 	} else {
-
+	    
+	    console.log("processed request body, attempting to save as " + file);
+	    
 	    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
 		
 		if (err) {
 		    console.log("error writing to file: " + file);
 		    res.json(500, err);
 		} else {
+		    console.log("request body saved to " + file);
 		    res.send(204);
 		}
 		
