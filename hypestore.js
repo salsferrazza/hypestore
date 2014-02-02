@@ -1,3 +1,4 @@
+
 var express = require('express');
 var fs = require('fs');
 
@@ -6,6 +7,7 @@ var app = express();
 var path = require('path');
 var server = require('http').createServer(app);
 var util = require('util');
+var getRawBody = require('raw-body');
 
 var spawn = require('child_process').spawn;
 
@@ -43,7 +45,7 @@ app.get("/:resource", function (req, res) {
     requestState.method = req.method;
 
     var file;
-    if (!req.params.resource) {
+    if (req.params.resource == undefined) {
 	file = config.storage.contentLocation + "/index.html";
     } else {
 	file = config.storage.contentLocation + "/" + req.params.resource;
@@ -51,6 +53,8 @@ app.get("/:resource", function (req, res) {
 
     requestState.requestedFile = file;
     
+    console.log("requestState: " + requestState);
+
     fs.readFile(file, function (err, data) {
 	
 	if (err) {
@@ -83,14 +87,12 @@ app.get("/:resource", function (req, res) {
 });
 
 // PUT 
-
 app.put("/:resource", function (req, res) {
 
     // TODO: 
     //
     // map file extension to MIME
     // validate known MIME types against client Accept header, 4xx Not Acceptable if no match
-
 
     var requestState = {};
 
@@ -107,18 +109,35 @@ app.put("/:resource", function (req, res) {
 
     requestState.requestedFile = file;
 
-    // PUT means we're replacing the entire thing
-    fs.writeFile(file, req.body, function (err) {
-	
-	if (err) {
-	    console.log("error writing to file: " + file);
-	    res.json(500, err);
-	} else {
-	    res.send(204);
-	}
-    
-    });
+    console.log("requestState: " + util.inspect(requestState));
+    console.log("contents of file: " + util.inspect(req));
+    console.log("content type: " + req.get('Content-Type'));
 
+    getRawBody(req, { length: req.headers['Content-Length'] }, function(err, buffer) {
+
+	if (err) {
+	    
+	    console.log("error getting raw body: " + util.inspect(err));
+	    res.json(500, err);
+
+	} else {
+
+	    // TODO: write buffer to file
+
+	    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
+		
+		if (err) {
+		    console.log("error writing to file: " + file);
+		    res.json(500, err);
+		} else {
+		    res.send(204);
+		}
+		
+	    });
+	    
+	}
+
+    });
 
 });
 

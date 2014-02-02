@@ -2,8 +2,4 @@
 
 echo starting hypestore...
 
-node hypestore > hypestore.log &
-
-echo hypetore started, logging to hypestore.log
-
-tail -f hypestore.log
+node hypestore

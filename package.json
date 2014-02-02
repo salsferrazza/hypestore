@@ -4,8 +4,9 @@
   "description": "HYPErtext STORage Engine",
   "main": "app.js",
   "dependencies": {
-    "express": "~3.4.8"
-  },
+    "express": "~3.4.8",
+    "raw-body" : "1.1.2"  
+},
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
