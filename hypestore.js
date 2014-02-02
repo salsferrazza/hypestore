@@ -102,8 +102,9 @@ app.put("/:resource", function (req, res) {
 
     // TODO: 
     //
-    // map file extension to MIME
-    // validate known MIME types against client Accept header, 4xx Not Acceptable if no match
+    // - map file extension to MIME
+    // - validate known MIME types against client Accept header, 4xx Not Acceptable if no match
+    // - handle hierarchical directory traversal
 
     var requestState = {};
 
