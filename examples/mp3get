@@ -1,0 +1,7 @@
+#!/bin/bash
+
+rm ./audiocaptcha.mp3
+
+curl -o audiocaptcha.mp3 -v -H "Content-Type: audio/mp3" -X GET http://localhost:8888/audiocaptcha.mp3
+
+ls -latr ./audiocaptcha.mp3
