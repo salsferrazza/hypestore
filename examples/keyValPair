@@ -1,0 +1,5 @@
+#!/bin/bash
+
+curl  -i -v -H "Accept: application/json" -H "Content-type: text/plain" -X PUT -d "phone=1-800-999-9999" http://localhost:8888/person1_num6
+
+ls -latr ../htdocs/person1_num6

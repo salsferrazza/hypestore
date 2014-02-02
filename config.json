@@ -1,7 +1,7 @@
 {
 	"port" : "8888",
         "storage" : {
-            "contentLocation" : "/tmp/hypestore"
+            "contentLocation" : "./htdocs"
         },
 	"replicas" : {
 	    
