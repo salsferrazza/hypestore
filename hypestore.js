@@ -161,7 +161,7 @@ app.post("/:resource", function (req, res) {
     // open file for writing 
 
 
-    res.json(405, { message: "Hyperstore supports HTTP methods: GET, PUT, DELETE" });
+    res.json(405, { message: "Hypestore supports HTTP methods: GET, PUT, DELETE" });
 
 });
 
