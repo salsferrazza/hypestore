@@ -3,6 +3,10 @@
 // rfc2616 server supporting transparent content 
 // storage and retrieval over HTTP
 
+// TODO: Store MD5 of submitted request bodies?
+// TODO: filter for hypestore administrative pages (_ prefixed?)
+
+
 var express = require('express');
 var fs = require('fs');
 
@@ -56,17 +60,11 @@ if (!config) {
 	}
     
     });
+
 }
 
-
-// TODO: HEAD and GET use same code until the point of reading media off storage
-//     : Store MD5 of submitted request bodies?
-
-
 // GET 
-app.get("/:resource", function (req, res) {
-
-    // TODO: filter for hypestore administrative pages (_ prefixed?)
+app.get("*", function (req, res) {
 
     var requestState = {};
 
@@ -74,18 +72,14 @@ app.get("/:resource", function (req, res) {
     requestState.url = req.url;
     requestState.method = req.method;
 
-    var file;
-    if (req.params.resource == undefined) {
-	file = config.storage.contentLocation + "/index.html";
-    } else {
-	file = config.storage.contentLocation + "/" + req.params.resource;
-    }
+    file = config.storage.contentLocation + "/" + req.url;
 
     requestState.requestedFile = file;
 
     fs.readFile(file, function (err, data) {
 	
 	if (err) {
+
 	    console.log("error opening file: " + file + ": " + util.inspect(err));
 	    
 	    if (err.errno == 34) { // No such file or directory
@@ -96,14 +90,13 @@ app.get("/:resource", function (req, res) {
 	    }
 
 	} else {
+
 	    console.log("found data in " + file);
 	    
 	    console.log("\n\n" + util.inspect(data));
 
-	    // TODO:
-
-	    // lookup content type of file from original submission
-	    // set content-type header
+	    // TODO: lookup content type of file from original submission
+	    // TODO: set content-type header
 	    	    
 	    res.send(200, data);
 
@@ -139,13 +132,9 @@ app.put("*", function (req, res) {
     //console.log("contents of file: " + util.inspect(req));
     //console.log("content type: " + req.get('Content-Type'));
 
-    // TODO: get path of ultimate resource that is being PUT 
-    //     : check if path exists
-    //     : if not, create with mkdirp, otherwise just persist the resource
-
     getRawBody(req, { length: req.headers['Content-Length'] }, function(err, buffer) {
 
-	console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
+	// console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
 	
 	if (err) {
 	    
@@ -154,6 +143,9 @@ app.put("*", function (req, res) {
 
 	} else {
 	    
+	    // TODO: refactor below code to url2resource(url, function(filehandle)) function
+	    //     : that takes in req.url and returns a filehandle or undefined to the callback.
+
 	    console.log("processed request body, attempting to save as " + file);
 	    
 	    var parts = [];
@@ -239,27 +231,25 @@ app.put("*", function (req, res) {
 
 
 // DELETE
-app.delete("/:resource", function (req, res) {
+app.delete("*", function (req, res) {
+    // url2resource(req.url, function(fh) {});
 
     res.send(204);
-
 });
 
 // POST -> should this even exist?  
-app.post("/:resource", function (req, res) {
-
+app.post("*", function (req, res) {
     // militant idempotency
-    res.json(405, { message: "Hypestore is militantly idempotent and only supports the HTTP methods GET, PUT and DELETE" });
-
+    res.json(405, { message: "Hypestore is militantly idempotent and only supports GET, PUT and DELETE" });
 });
 
 function loadConfig() {
-    console.log("Loading configuration for " + "./config.json");
+    console.log("loading configuration for " + "./config.json");
     if (fs.existsSync("./config.json")) {
-	var cfg = fs.readFileSync("./config.json", 'utf-8');
-	return JSON.parse(cfg);
+	var config = fs.readFileSync("./config.json", 'utf-8');
+	return JSON.parse(config);
     } else {
-	console.log("loadConfig: no config.json found");
+	console.log("loadConfig: no ./config.json found");
 	return undefined;
     }
 }
