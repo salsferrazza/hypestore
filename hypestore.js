@@ -12,6 +12,7 @@ var path = require('path');
 var server = require('http').createServer(app);
 var util = require('util');
 var getRawBody = require('raw-body');
+var mkdirp = require('mkdirp');
 
 var spawn = require('child_process').spawn;
 
@@ -113,7 +114,7 @@ app.get("/:resource", function (req, res) {
 });
 
 // PUT 
-app.put("/:resource", function (req, res) {
+app.put("*", function (req, res) {
 
     // TODO: 
     //
@@ -127,13 +128,8 @@ app.put("/:resource", function (req, res) {
     requestState.url = req.url;
     requestState.method = req.method;
 
-    var file;
-    if (!req.params.resource) {
-	file = config.storage.contentLocation + "/index.html";
-    } else {
-	file = config.storage.contentLocation + "/" + req.params.resource;
-    }
-
+    var file = config.storage.contentLocation + req.url;
+    
     requestState.requestedFile = file;
 
     console.log("req.files: " + util.inspect(req.files));
@@ -142,6 +138,10 @@ app.put("/:resource", function (req, res) {
     //console.log("requestState: " + util.inspect(requestState));
     //console.log("contents of file: " + util.inspect(req));
     //console.log("content type: " + req.get('Content-Type'));
+
+    // TODO: get path of ultimate resource that is being PUT 
+    //     : check if path exists
+    //     : if not, create with mkdirp, otherwise just persist the resource
 
     getRawBody(req, { length: req.headers['Content-Length'] }, function(err, buffer) {
 
@@ -156,14 +156,77 @@ app.put("/:resource", function (req, res) {
 	    
 	    console.log("processed request body, attempting to save as " + file);
 	    
-	    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
+	    var parts = [];
+	    
+	    parts = requestState.url.split("/")
+	    console.log("path split into " + parts.length + " parts");
+	    var dirTree = config.storage.contentLocation + "/";
+	    var resourceFile = {};
+
+	    for (var i = 0; i < parts.length; i++) {
 		
-		if (err) {
-		    console.log("error writing to file: " + file);
-		    res.json(500, err);
+		// first splitee will always be empty
+		if (i != 0) {
+
+		    // if we're still in the the dir structure
+		    if (i !== (parts.length - 1)) {
+
+			dirTree += (parts[i] + "/");
+
+		    } else {
+		    	
+			// this is the "file" or "resource" component of the path
+			resourceFile = parts[i];
+		    }
+		    
+		} 
+
+	    }
+	    
+	    console.log("dirTree: " + dirTree);
+	    console.log("resourceFile: " + resourceFile);
+
+	    fs.exists(dirTree, function(exists) {
+
+		if (!exists) {
+		 
+		    mkdirp(dirTree, function(err) {
+
+			if (err) {
+			    console.log("could not create directory: " + dirTree);
+			    res.json(500, err);
+			} else {
+
+			    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
+				
+				if (err) {
+				    console.log("error writing to file: " + file);
+				    res.json(500, err);
+				} else {
+				    console.log("request body saved to " + file);
+				    res.send(204);
+				}
+				
+			    }); 
+
+			}
+			
+		    });
+
 		} else {
-		    console.log("request body saved to " + file);
-		    res.send(204);
+
+		    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
+			
+			if (err) {
+			    console.log("error writing to file: " + file);
+			    res.json(500, err);
+			} else {
+			    console.log("request body saved to " + file);
+			    res.send(204);
+			}
+			
+		    }); 
+
 		}
 		
 	    });
