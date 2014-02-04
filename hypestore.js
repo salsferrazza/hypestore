@@ -245,15 +245,37 @@ app.put("*", function (req, res) {
 
 // DELETE
 app.delete("*", function (req, res) {
-    // url2resource(req.url, function(fh) {});
 
-    res.send(204);
+
+    var file = config.storage.contentLocation + req.url;
+
+    fs.exists(file, function (exists) {
+
+	if (exists) {
+
+	    fs.unlink(file, function (error) {
+
+		if (error) {
+		    res.json(500, error);
+		} else {
+		    res.send(204);
+		}
+		
+	    });
+
+	} else {
+	    res.send(404)
+	}
+
+    });
+
 });
 
 // POST -> should this even exist?  
 app.post("*", function (req, res) {
     // militant idempotency
-    res.json(501, { message: "Hypestore is militantly idempotent and only supports GET, PUT and DELETE" });
+    res.set('Allow', 'GET, PUT, DELETE');
+    res.json(405, { message: "Hypestore is militantly idempotent and only supports GET, PUT and DELETE" });
 });
 
 function loadConfig() {
