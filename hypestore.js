@@ -177,52 +177,65 @@ app.put("*", function (req, res) {
 	    
 	    console.log("dirTree: " + dirTree);
 	    console.log("resourceFile: " + resourceFile);
+	    var httpResponseCode = {};
 
 	    fs.exists(dirTree, function(exists) {
 
 		if (!exists) {
 		 
+		    httpResponseCode = 201;
 		    mkdirp(dirTree, function(err) {
 
 			if (err) {
 			    console.log("could not create directory: " + dirTree);
 			    res.json(500, err);
-			} else {
-
-			    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
-				
-				if (err) {
-				    console.log("error writing to file: " + file);
-				    res.json(500, err);
-				} else {
-				    console.log("request body saved to " + file);
-				    res.send(204);
-				}
-				
-			    }); 
-
-			}
-			
+			    return;
+			} 
+		    
 		    });
 
-		} else {
-
-		    fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
-			
-			if (err) {
-			    console.log("error writing to file: " + file);
-			    res.json(500, err);
-			} else {
-			    console.log("request body saved to " + file);
-			    res.send(204);
-			}
-			
-		    }); 
-
 		}
-		
+
+		fs.exists(dirTree + "/" + resourceFile, function(exists) {
+		    if (exists) {
+			httpResponseCode = 204
+		    } else {
+			httpResponseCode = 201;
+		    }
+		});
+
+		fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
+		    
+		    if (err) {
+			console.log("error writing to file: " + file);
+			res.json(500, err);
+			return;
+		    } else {
+			console.log("request body saved to " + file);
+		    }
+		    
+		}); 
+
+		var meta = {};
+		meta.mime = req.headers['content-type'];
+		meta.length = req.headers['content-length'];
+		meta.ip = req.ip;
+		meta.ua = req.headers['user-agent'];
+
+		fs.writeFile(dirTree + "." + resourceFile + ".meta", JSON.stringify(meta), { flag: 'w' }, function (err) {
+		    if (err) {
+			console.log("error writing to meta file: " + file + ".putHeaders");
+			res.json(500, err);
+			return;
+		    } else {
+			console.log("metadata saved to " + file + ".meta");
+			res.send(httpResponseCode);
+		    }
+		    
+		}); 
+
 	    });
-	    
+
 	}
 
     });
@@ -240,7 +253,7 @@ app.delete("*", function (req, res) {
 // POST -> should this even exist?  
 app.post("*", function (req, res) {
     // militant idempotency
-    res.json(405, { message: "Hypestore is militantly idempotent and only supports GET, PUT and DELETE" });
+    res.json(501, { message: "Hypestore is militantly idempotent and only supports GET, PUT and DELETE" });
 });
 
 function loadConfig() {
