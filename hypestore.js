@@ -35,7 +35,7 @@ var config = loadConfig();
 if (!config) {
     console.log("FATAL: No config.json in current directory, exiting.");
 } else {
- 
+    
     fs.exists(config.storage.contentLocation, function (exists) {
 
 	if (exists) {
@@ -43,6 +43,7 @@ if (!config) {
 	    server.listen(config.port);
 	    console.log("Listening on port: " + config.port);
 	} else {
+
 	    console.log("WARNING: location " + config.storage.contentLocation + " specified in config.json could not be found.  Trying to create...");
 	    
 	    fs.mkdir(config.storage.contentLocation, function (exception) {
@@ -58,7 +59,7 @@ if (!config) {
 	    });
 
 	}
-    
+	
     });
 
 }
@@ -72,31 +73,23 @@ app.get("*", function (req, res) {
     requestState.url = req.url;
     requestState.method = req.method;
 
-    file = config.storage.contentLocation + "/" + req.url;
+    // special file handling, e.g. introspection, index media, etc.
+    // 404 responses to user agencies should include reference to 
+    // introspection file for purposes of reforming content discovery
+ 
+    var file = config.storage.contentLocation  + req.url;
+    var resource = file.split('/')[file.split('/').length - 1];
+    
+    if (!resource) {
 
-	// special file handling, e.g. introspection, index media, etc.
-	// 404 responses to user agencies should include reference to 
-	// introspection file for purposes of reforming content discovery
-
-	var resource = file.split('/').[file.split('/').length - 1];
+	// retrieve configured index media for requested directory
+	// send response
 	
-	if (!resource) {
-
-		// retrieve configured index media for requested directory
-		// send response
-		
-		console.log("no resource specified, should send index media");
+	console.log("no resource specified, should send index media");
+	file = config.storage.contentLocation + req.url + config.storage.indexFile;
 	
-	} else if (resource === 'introspection') {
-	
-		console.log("introspection file specfied, should send introspection");
-	
-		// return introspection for location of request within the resource hierarchy
-		
-		
-	
-	}
-	
+    }
+    
     requestState.requestedFile = file;
 
     fs.readFile(file, function (err, data) {
@@ -120,7 +113,7 @@ app.get("*", function (req, res) {
 
 	    // TODO: lookup content type of file from original submission
 	    // TODO: set content-type header
-	    	    
+	    
 	    res.send(200, data);
 
 	}
@@ -205,7 +198,7 @@ app.put("*", function (req, res) {
 	    fs.exists(dirTree, function(exists) {
 
 		if (!exists) {
-		 
+		    
 		    httpResponseCode = 201;
 		    mkdirp(dirTree, function(err) {
 
@@ -214,7 +207,7 @@ app.put("*", function (req, res) {
 			    res.json(500, err);
 			    return;
 			} 
-		    
+			
 		    });
 
 		}
