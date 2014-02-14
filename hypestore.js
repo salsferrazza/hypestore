@@ -74,6 +74,29 @@ app.get("*", function (req, res) {
 
     file = config.storage.contentLocation + "/" + req.url;
 
+	// special file handling, e.g. introspection, index media, etc.
+	// 404 responses to user agencies should include reference to 
+	// introspection file for purposes of reforming content discovery
+
+	var resource = file.split('/').[file.split('/').length - 1];
+	
+	if (!resource) {
+
+		// retrieve configured index media for requested directory
+		// send response
+		
+		console.log("no resource specified, should send index media");
+	
+	} else if (resource === 'introspection') {
+	
+		console.log("introspection file specfied, should send introspection");
+	
+		// return introspection for location of request within the resource hierarchy
+		
+		
+	
+	}
+	
     requestState.requestedFile = file;
 
     fs.readFile(file, function (err, data) {
