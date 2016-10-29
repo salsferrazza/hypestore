@@ -19,6 +19,7 @@ var getRawBody = require('raw-body');
 var mkdirp = require('mkdirp');
 
 var spawn = require('child_process').spawn;
+var config;
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -35,41 +36,8 @@ app.use(express.methodOverride());
 app.use(express.session({ secret: 'keyboard cat' }));
 app.use(express.static(__dirname + '/public'));
 
-var config = loadConfig();
+init();
 
-if (!config) {
-    console.log("FATAL: No config.json in current directory, exiting.");
-} else {
-    
-    fs.exists(config.storage.contentLocation, function (exists) {
-
-	if (exists) {
-	    console.log("found content directory " + config.storage.contentLocation);
-	    server.listen(config.port);
-	    console.log("Listening on port: " + config.port);
-	} else {
-
-	    console.log("WARNING: location " + config.storage.contentLocation + " specified in config.json could not be found.  Trying to create...");
-	    
-	    fs.mkdir(config.storage.contentLocation, function (exception) {
-
-		if (exception) {
-		    console.log("FATAL: Could not create directory " + config.storage.contentLocation);
-		} else {
-
-		    // TODO: wrap this block with exception handling, e.g. non-su attempt to listen on low port
-		    console.log("created directory " + config.storage.contentLocation);
-		    server.listen(config.port);
-		    console.log("Listening on port: " + config.port);
-		}
-		
-	    });
-
-	}
-	
-    });
-
-}
 
 // GET 
 app.get("*", function (req, res) {
@@ -105,24 +73,24 @@ app.get("*", function (req, res) {
 
 	    console.log("error opening file: " + file + ": " + util.inspect(err));
 	    
-	    if (err.errno == 34) { // No such file or directory
-		requestState.responseCode = 404;
-		res.json(404, requestState); 
+	    if (err.errno == -2) { // ENOENT: No such file or directory
+		res.send(404); 
+		return;
 	    } else {
 		res.json(500, err);
+		return;
 	    }
 
 	} else {
 
 	    console.log("found data in " + file);
-	    
 	    console.log("\n\n" + util.inspect(data));
 
 	    // TODO: lookup content type of file from original submission
 	    // TODO: set content-type header
 	    
 	    res.send(200, data);
-
+	    return;
 	}
 
     });
@@ -312,3 +280,29 @@ function loadConfig() {
     }
 }
 
+function init() {
+    config = loadConfig();
+    if (!config) {
+	console.log("FATAL: No config.json in current directory, exiting.");
+    } else {
+	fs.exists(config.storage.contentLocation, function (exists) {
+		if (exists) {
+		    console.log("found content directory " + config.storage.contentLocation);
+		    server.listen(config.port);
+		    console.log("Listening on port: " + config.port);
+		} else {
+		    console.log("WARNING: location " + config.storage.contentLocation + " specified in config.json could not be found.  Trying to create...");
+		    fs.mkdir(config.storage.contentLocation, function (exception) {
+			    if (exception) {
+				console.log("FATAL: Could not create directory " + config.storage.contentLocation);
+			    } else {
+				// TODO: wrap this block with exception handling, e.g. non-su attempt to listen on low port
+				console.log("created directory " + config.storage.contentLocation);
+				server.listen(config.port);
+				console.log("Listening on port: " + config.port);
+			    }
+			});
+		}
+	    });
+    }
+}
