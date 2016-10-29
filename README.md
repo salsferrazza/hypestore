@@ -1,6 +1,6 @@
 hypestore
 =========
 
-All your hype are belong to us
+*Dead simple, low-touch RFC 2616 processing*
 
-http://salsferrazza.github.io/hypestore/
+```hypestor``` aspires to be a low-maintenance, verb-neutral, media-agnostic web server, with a focus on simplicity.
