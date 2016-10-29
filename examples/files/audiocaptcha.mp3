@@ -1,12 +1,6 @@
 {
-  "headers": {
-    "user-agent": "curl/7.30.0",
-    "host": "localhost:8888",
-    "accept": "*/*",
-    "content-type": "audio/mp3"
-  },
-  "url": "/audio/captcha/captcha.mp3",
-  "method": "GET",
-  "requestedFile": "./htdocs//audio/captcha/captcha.mp3",
-  "responseCode": 404
+  "errno": -2,
+  "code": "ENOENT",
+  "syscall": "open",
+  "path": "./htdocs/audio/captcha/captcha.mp3"
 }
