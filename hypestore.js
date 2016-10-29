@@ -1,4 +1,4 @@
-// hypestore - HYPErtext STORage Engine
+// hypestore - HYPErmedia STORage Engine
 //
 // rfc2616 server supporting transparent content 
 // storage and retrieval over HTTP
@@ -20,12 +20,17 @@ var mkdirp = require('mkdirp');
 
 var spawn = require('child_process').spawn;
 
-app.use(express.static(__dirname + '/static'));
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
+
+app.use(express.static(__dirname + '/static'));
 app.use(express.logger());
 app.use(express.cookieParser());
 app.use(express.bodyParser());
+app.use(function (req, res, next) {
+	res.setHeader('X-Powered-By', 'HypeStore/0');
+	next();
+});
 app.use(express.methodOverride());
 app.use(express.session({ secret: 'keyboard cat' }));
 app.use(express.static(__dirname + '/public'));
@@ -51,6 +56,8 @@ if (!config) {
 		if (exception) {
 		    console.log("FATAL: Could not create directory " + config.storage.contentLocation);
 		} else {
+
+		    // TODO: wrap this block with exception handling, e.g. non-su attempt to listen on low port
 		    console.log("created directory " + config.storage.contentLocation);
 		    server.listen(config.port);
 		    console.log("Listening on port: " + config.port);
