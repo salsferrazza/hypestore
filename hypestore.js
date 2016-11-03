@@ -188,11 +188,7 @@ app.put("*", function (req, res) {
 		}
 
 		fs.exists(dirTree + "/" + resourceFile, function(exists) {
-		    if (exists) {
-			httpResponseCode = 204
-		    } else {
-			httpResponseCode = 201;
-		    }
+			httpResponseCode = exists ? 204 : 201;
 		});
 
 		fs.writeFile(file, buffer, { flag: 'w' }, function (err) {

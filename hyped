@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export DEBUG=express:*
+export DEBUG=*:*
 
 echo starting hypestore...
 
