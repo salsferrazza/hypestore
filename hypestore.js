@@ -2,23 +2,19 @@
 //
 // rfc2616 server supporting transparent content 
 // storage and retrieval over HTTP
-
 // TODO: Store MD5 of submitted request bodies?
 // TODO: filter for hypestore administrative pages (_ prefixed?)
-
-
 var express = require('express');
 var fs = require('fs');
-
 var app = express();
-
 var path = require('path');
 var server = require('http').createServer(app);
 var util = require('util');
 var getRawBody = require('raw-body');
 var mkdirp = require('mkdirp');
-
+var mime = require('mime-types');
 var spawn = require('child_process').spawn;
+
 var config;
 
 app.set('views', __dirname + '/views');
@@ -28,242 +24,266 @@ app.use(express.static(__dirname + '/static'));
 app.use(express.logger());
 app.use(express.cookieParser());
 app.use(express.bodyParser());
-app.use(function (req, res, next) {
+app.use(function(req, res, next) {
 	res.setHeader('X-Powered-By', 'HypeStore/0');
 	next();
-});
+    });
 app.use(express.methodOverride());
-app.use(express.session({ secret: 'keyboard cat' }));
-app.use(express.static(__dirname + '/public'));
 
-init();
+init(); // read config and start server
 
+// HTTP method definitions
+//
+// HEAD
 
-// GET 
-app.get("*", function (req, res) {
+app.head("*", function(req, res) {
 
-    var requestState = {};
+	let file = config.storage.contentLocation + req.url;
+	let resource = file.split('/')[file.split('/').length - 1];
 
-    requestState.headers = req.headers;
-    requestState.url = req.url;
-    requestState.method = req.method;
-
-    // special file handling, e.g. introspection, index media, etc.
-    // 404 responses to user agencies should include reference to 
-    // introspection file for purposes of reforming content discovery
- 
-    var file = config.storage.contentLocation  + req.url;
-    var resource = file.split('/')[file.split('/').length - 1];
-    
-    if (!resource) {
-
-	// retrieve configured index media for requested directory
-	// send response
-	
-	console.log("no resource specified, should send index media");
-	file = config.storage.contentLocation + req.url + config.storage.indexFile;
-	
-    }
-    
-    requestState.requestedFile = file;
-
-    fs.readFile(file, function (err, data) {
-	
-	if (err) {
-
-	    console.log("error opening file: " + file + ": " + util.inspect(err));
-	    
-	    if (err.errno == -2) { // ENOENT: No such file or directory
-		res.send(404); 
-		return;
-	    } else {
-		res.json(500, err);
-		return;
-	    }
+	if (file) {
+	    fs.stat(file, function(err, stats) {
+		    if (err) {
+			res.json(500, err);
+			return;
+		    } else {
+			res.set('Content-Length', stats.size);
+			res.set('Content-Type', mime.lookup(file));
+			res.send(200);
+			return;
+		    }
+		});
 
 	} else {
-
-	    console.log("found data in " + file);
-	    console.log("\n\n" + util.inspect(data));
-
-	    // TODO: lookup content type of file from original submission
-	    // TODO: set content-type header
-	    
-	    res.send(200, data);
+	    res.send(404);
 	    return;
 	}
 
     });
 
-});
+// GET 
+app.get("*", function(req, res) {
 
-// PUT 
-app.put("*", function (req, res) {
+	// TODO: Add support for Range header
+	//       file reader should take no Range header as a request for byte range 0-<size of file>
+	//       return a error 416 if upper range exceeds beyond length of file 
 
-    // TODO: 
-    //
-    // - map file extension to MIME
-    // - validate known MIME types against client Accept header, 4xx Not Acceptable if no match
-    // - handle hierarchical directory traversal
+	var requestState = {};
 
-    var requestState = {};
+	requestState.headers = req.headers;
+	requestState.url = req.url;
+	requestState.method = req.method;
 
-    requestState.headers = req.headers;
-    requestState.url = req.url;
-    requestState.method = req.method;
+	let file = config.storage.contentLocation + req.url;
+	let resource = file.split('/')[file.split('/').length - 1];
 
-    var file = config.storage.contentLocation + req.url;
-    
-    requestState.requestedFile = file;
+	if (!file) {
+	    console.log("no resource specified, should send index media");
+	    file = config.storage.contentLocation + req.url + config.storage.indexFile;
+	}
 
-    console.log("req.files: " + util.inspect(req.files));
-    
-    console.log("file to write to: " + file);
-    //console.log("requestState: " + util.inspect(requestState));
-    //console.log("contents of file: " + util.inspect(req));
-    //console.log("content type: " + req.get('Content-Type'));
+	fs.readFile(file, function(err, data) {
 
-    getRawBody(req, { length: req.headers['Content-Length'] }, function(err, buffer) {
+		if (err) {
 
-	// console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
-	
-	if (err) {
-	    
-	    console.log("error getting raw body: " + util.inspect(err));
-	    res.json(500, err);
+		    console.log("error opening file: " + file + ": " + util.inspect(err));
 
-	} else {
-	    
-	    // TODO: refactor below code to url2resource(url, function(filehandle)) function
-	    //     : that takes in req.url and returns a filehandle or undefined to the callback.
-
-	    console.log("processed request body, attempting to save as " + file);
-	    
-	    var parts = [];
-	    
-	    parts = requestState.url.split("/")
-	    console.log("path split into " + parts.length + " parts");
-	    var dirTree = config.storage.contentLocation + "/";
-	    var resourceFile = {};
-
-	    for (var i = 0; i < parts.length; i++) {
-		
-		// first splitee will always be empty
-		if (i != 0) {
-
-		    // if we're still in the the dir structure
-		    if (i !== (parts.length - 1)) {
-
-			dirTree += (parts[i] + "/");
-
+		    if (err.errno == -2) { // ENOENT: No such file or directory
+			res.send(404);
+			return;
 		    } else {
-		    	
-			// this is the "file" or "resource" component of the path
-			resourceFile = parts[i];
+			res.json(500, err);
+			return;
 		    }
-		    
-		} 
 
-	    }
-	    
-	    console.log("dirTree: " + dirTree);
-	    console.log("resourceFile: " + resourceFile);
-	    var httpResponseCode = {};
-
-	    fs.exists(dirTree, function(exists) {
-
-		if (!exists) {
-		    
-		    httpResponseCode = 201;
-		    mkdirp(dirTree, function(err) {
-
-			if (err) {
-			    console.log("could not create directory: " + dirTree);
-			    res.json(500, err);
-			    return;
-			} 
-			
-		    });
-
+		} else {
+		    console.log("found data in " + file);
+		    res.set('Content-Type', mime.lookup(file));
+		    res.send(200, data);
+		    return;
 		}
-
-		fs.exists(dirTree + "/" + resourceFile, function(exists) {
-			httpResponseCode = exists ? 204 : 201;
-		});
-
-		fs.writeFile(file, buffer, { flag: 'w' }, function (err) {
-		    
-		    if (err) {
-			console.log("error writing to file: " + file);
-			res.json(500, err);
-			return;
-		    } else {
-			console.log("request body saved to " + file);
-		    }
-		    
-		}); 
-
-		var meta = {};
-		meta.mime = req.headers['content-type'];
-		meta.length = req.headers['content-length'];
-		meta.ip = req.ip;
-		meta.ua = req.headers['user-agent'];
-
-		fs.writeFile(dirTree + "." + resourceFile + ".meta", JSON.stringify(meta), { flag: 'w' }, function (err) {
-		    if (err) {
-			console.log("error writing to meta file: " + file + ".putHeaders");
-			res.json(500, err);
-			return;
-		    } else {
-			console.log("metadata saved to " + file + ".meta");
-			res.send(httpResponseCode);
-		    }
-		    
-		}); 
 
 	    });
 
-	}
-
     });
 
-});
+// PUT 
+app.put("*", function(req, res) {
+
+	// TODO: 
+	//
+	// - map file extension to MIME
+	// - validate known MIME types against client Accept header, 4xx Not Acceptable if no match
+	// - handle hierarchical directory traversal
+
+	var requestState = {};
+
+	requestState.headers = req.headers;
+	requestState.url = req.url;
+	requestState.method = req.method;
+
+	var file = config.storage.contentLocation + req.url;
+
+	requestState.requestedFile = file;
+
+	console.log("req.files: " + util.inspect(req.files));
+
+	console.log("file to write to: " + file);
+	//console.log("requestState: " + util.inspect(requestState));
+	//console.log("contents of file: " + util.inspect(req));
+	//console.log("content type: " + req.get('Content-Type'));
+
+	getRawBody(req, {
+		length: req.headers['Content-Length']
+		    }, function(err, buffer) {
+
+		// console.log("getRawBody callback, err: " + util.inspect(err) + ", buffer: " + util.inspect(buffer));
+
+		if (err) {
+
+		    console.log("error getting raw body: " + util.inspect(err));
+		    res.json(500, err);
+
+		} else {
+
+		    // TODO: refactor below code to url2resource(url, function(filehandle)) function
+		    //     : that takes in req.url and returns a filehandle or undefined to the callback.
+
+		    console.log("processed request body, attempting to save as " + file);
+
+		    var parts = [];
+
+		    parts = requestState.url.split("/")
+			console.log("path split into " + parts.length + " parts");
+		    var dirTree = config.storage.contentLocation + "/";
+		    var resourceFile = {};
+
+		    for (var i = 0; i < parts.length; i++) {
+
+			// first splitee will always be empty
+			if (i != 0) {
+
+			    // if we're still in the the dir structure
+			    if (i !== (parts.length - 1)) {
+
+				dirTree += (parts[i] + "/");
+
+			    } else {
+
+				// this is the "file" or "resource" component of the path
+				resourceFile = parts[i];
+			    }
+
+			}
+
+		    }
+
+		    console.log("dirTree: " + dirTree);
+		    console.log("resourceFile: " + resourceFile);
+		    var httpResponseCode = {};
+
+		    fs.exists(dirTree, function(exists) {
+
+			    if (!exists) {
+
+				httpResponseCode = 201;
+				mkdirp(dirTree, function(err) {
+
+					if (err) {
+					    console.log("could not create directory: " + dirTree);
+					    res.json(500, err);
+					    return;
+					}
+
+				    });
+
+			    }
+
+			    fs.exists(dirTree + "/" + resourceFile, function(exists) {
+				    httpResponseCode = exists ? 204 : 201;
+				});
+
+			    fs.writeFile(file, buffer, {
+				    flag: 'w'
+					}, function(err) {
+
+				    if (err) {
+					console.log("error writing to file: " + file);
+					res.json(500, err);
+					return;
+				    } else {
+					console.log("request body saved to " + file);
+				    }
+
+				});
+
+			    var meta = {};
+			    meta.mime = req.headers['content-type'];
+			    meta.length = req.headers['content-length'];
+			    meta.ip = req.ip;
+			    meta.ua = req.headers['user-agent'];
+
+			    fs.writeFile(dirTree + "." + resourceFile + ".meta", JSON.stringify(meta), {
+				    flag: 'w'
+					}, function(err) {
+				    if (err) {
+					console.log("error writing to meta file: " + file + ".putHeaders");
+					res.json(500, err);
+					return;
+				    } else {
+					console.log("metadata saved to " + file + ".meta");
+					res.send(httpResponseCode);
+				    }
+
+				});
+
+			});
+
+		}
+
+	    });
+
+    });
 
 
 // DELETE
-app.delete("*", function (req, res) {
+app.delete("*", function(req, res) {
 
+	var file = config.storage.contentLocation + req.url;
 
-    var file = config.storage.contentLocation + req.url;
+	fs.exists(file, function(exists) {
 
-    fs.exists(file, function (exists) {
+		if (exists) {
 
-	if (exists) {
+		    fs.unlink(file, function(error) {
 
-	    fs.unlink(file, function (error) {
+			    if (error) {
+				res.json(500, error);
+				return;
+			    } else {
+				res.send(204);
+				return;
+			    }
 
-		if (error) {
-		    res.json(500, error);
+			});
+
 		} else {
-		    res.send(204);
+		    res.send(404);
+		    return;
 		}
-		
-	    });
 
-	} else {
-	    res.send(404)
-	}
+	    });
 
     });
 
-});
-
 // POST -> should this even exist?  
-app.post("*", function (req, res) {
-    // militant idempotency
-    res.set('Allow', 'GET, PUT, DELETE');
-    res.json(405, { message: "Hypestore is militantly idempotent and only supports GET, PUT and DELETE" });
-});
+app.post("*", function(req, res) {
+	res.set('Allow', 'DELETE, GET, HEAD, PUT');
+	res.json(405, {
+		message: "Hypestore is militantly idempotent and only supports HEAD, GET, PUT and DELETE"
+		    });
+	return;
+    });
 
 function loadConfig() {
     console.log("loading configuration for " + "./config.json");
@@ -280,25 +300,26 @@ function init() {
     config = loadConfig();
     if (!config) {
 	console.log("FATAL: No config.json in current directory, exiting.");
-    } else {
-	fs.exists(config.storage.contentLocation, function (exists) {
-		if (exists) {
-		    console.log("found content directory " + config.storage.contentLocation);
-		    server.listen(config.port);
-		    console.log("Listening on port: " + config.port);
-		} else {
-		    console.log("WARNING: location " + config.storage.contentLocation + " specified in config.json could not be found.  Trying to create...");
-		    fs.mkdir(config.storage.contentLocation, function (exception) {
-			    if (exception) {
-				console.log("FATAL: Could not create directory " + config.storage.contentLocation);
-			    } else {
-				// TODO: wrap this block with exception handling, e.g. non-su attempt to listen on low port
-				console.log("created directory " + config.storage.contentLocation);
-				server.listen(config.port);
-				console.log("Listening on port: " + config.port);
-			    }
-			});
-		}
-	    });
+	process.exit(1);
     }
+    fs.exists(config.storage.contentLocation, function(exists) {
+	    if (!exists) {
+		console.log("WARNING: location " + config.storage.contentLocation + " specified in config.json could not be found.  Trying to create...");
+		fs.mkdir(config.storage.contentLocation, function(exception) {
+			if (exception) {
+			    console.log("FATAL: Could not create directory " + config.storage.contentLocation);
+			    process.exit(exception);
+			}
+		    });
+	    }
+	});
+
+    try {
+	server.listen(config.port);
+	console.log('hypestore listening on port ' + config.port);
+    } catch (error) {
+	console.error('Could not bind port ' + config.port);
+	process.exit(error);
+    }
+
 }
