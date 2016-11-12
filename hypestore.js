@@ -47,8 +47,10 @@ app.head("*", function(req, res) {
                 res.json(500, err);
                 return;
             } else {
+
+                let type = mime.lookup(file);
                 res.set('Content-Length', stats.size);
-                res.set('Content-Type', mime.lookup(file));
+                res.set('Content-Type', type ? type : 'application/octet-stream');
                 res.send(200);
                 return;
             }
@@ -96,8 +98,9 @@ app.get("*", function(req, res) {
             }
 
         } else {
+            let type = mime.lookup(file);
             console.log("found data in " + file);
-            res.set('Content-Type', mime.lookup(file));
+            res.set('Content-Type', type ? type : 'application/octet-stream');
             res.send(200, data);
             return;
         }
