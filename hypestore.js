@@ -15,7 +15,7 @@ var mkdirp = require('mkdirp');
 var mime = require('mime-types');
 var spawn = require('child_process').spawn;
 
-var SUPPORT = 'GET, HEAD, PUT, DELETE, OPTIONS'
+var SUPPORT = 'GET, HEAD, PUT, DELETE, OPTIONS';
 var config;
 
 app.set('views', __dirname + '/views');
@@ -267,9 +267,9 @@ app.post("*", function(req, res) {
 });
 
 app.options("*", function(req, res) {
-	res.set('Allow', SUPPORT);
-	res.send(200);
-	return;
+    res.set('Allow', SUPPORT);
+    res.send(200);
+    return;
 });
 
 function loadConfig() {
