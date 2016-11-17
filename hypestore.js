@@ -18,10 +18,6 @@ var spawn = require('child_process').spawn;
 var SUPPORT = 'GET, HEAD, PUT, DELETE, OPTIONS';
 var config;
 
-app.set('views', __dirname + '/views');
-app.set('view engine', 'ejs');
-
-app.use(express.static(__dirname + '/static'));
 app.use(express.logger());
 app.use(express.cookieParser());
 app.use(express.bodyParser());
