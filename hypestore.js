@@ -48,7 +48,6 @@ app.head("*", function(req, res) {
 				res.json(500, err);
 				return;
 			} else {
-
 				let type = mime.lookup(file);
 				res.set('Content-Length', stats.size);
 				res.set('Content-Type', type ? type : 'application/octet-stream');
@@ -70,32 +69,25 @@ app.get("*", function(req, res) {
 	//       file reader should take no Range header as a request for byte range 0-<size of file>
 	//       return a error 416 if upper range exceeds beyond length of file 
 
-	var requestState = {};
-
-	requestState.headers = req.headers;
-	requestState.url = req.url;
-	requestState.method = req.method;
+	let requestState = {
+	    headers: req.headers,
+	    url: req.url,
+	    method: req.method
+	};
 
 	let file = config.storage.contentLocation + req.url;
 	let resource = file.split('/')[file.split('/').length - 1];
 
-	if (!file) {
-		console.log("no resource specified, should send index media");
-		file = config.storage.contentLocation + req.url + config.storage.indexFile;
-	}
-
 	fs.readFile(file, function(err, data) {
 
 		if (err) {
-
-			console.log("error opening file: " + file + ": " + util.inspect(err));
-
+			console.error("could not open file: " + file + ": " + util.inspect(err));
 			if (err.errno == -2) { // ENOENT: No such file or directory
-				res.send(404);
-				return;
+			    res.json(404, err);
+			    return;
 			} else {
-				res.json(500, err);
-				return;
+			    res.json(500, err);
+			    return;
 			}
 
 		} else {
