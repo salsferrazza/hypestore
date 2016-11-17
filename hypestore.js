@@ -16,6 +16,7 @@ var mime = require('mime-types');
 var spawn = require('child_process').spawn;
 
 var SUPPORT = 'GET, HEAD, PUT, DELETE, OPTIONS';
+var MIMEDEF = 'application/octet-stream';
 var config;
 
 app.use(express.logger());
@@ -46,7 +47,7 @@ app.head("*", function(req, res) {
 			} else {
 				let type = mime.lookup(file);
 				res.set('Content-Length', stats.size);
-				res.set('Content-Type', type ? type : 'application/octet-stream');
+				res.set('Content-Type', type ? type : MIMEDEF);
 				res.send(200);
 				return;
 			}
