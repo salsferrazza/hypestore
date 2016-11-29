@@ -65,16 +65,11 @@ app.get("*", function(req, res) {
     //       file reader should take no Range header as a request for byte range 0-<size of file>
     //       return a error 416 if upper range exceeds beyond length of file 
 
-    //let file = config.storage.contentLocation + req.url;
-    //let resource = file.split('/')[file.split('/').length - 1];
-
-    let file = decodeURIComponent(parseurl(req).pathname);
+    let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
 
     if (!file) {
         res.send(400, 'Path is required');
         return;
-    } else {
-        file = config.storage.contentLocation + file
     }
 
     fs.readFile(file, function(err, data) {
@@ -103,7 +98,7 @@ app.get("*", function(req, res) {
 // PUT 
 app.put("*", function(req, res) {
 
-    let file = config.storage.contentLocation + req.url;
+    let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
 
     getRawBody(req, {
         length: req.headers['Content-Length']
@@ -199,6 +194,13 @@ app.options("*", function(req, res) {
     res.send(200);
     return;
 });
+
+// return the contents of a particular file within the specified range
+function fileData(file, rangeStart, rangeEnd, cb) {
+
+    
+
+}
 
 function loadConfig() {
     if (fs.existsSync("./config.json")) {
