@@ -67,6 +67,9 @@ app.get("*", function(req, res) {
 
     let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
 
+    let rangeStart = req.header('Range') ? req.header('Range').split('-')[0] : 0;
+    let rangeEnd = req.header('Range') ? req.header('Range').split('-')[1] : req.header('Content-Length');
+
     if (!file) {
         res.send(400, 'Path is required');
         return;
@@ -87,7 +90,7 @@ app.get("*", function(req, res) {
         } else {
             let type = mime.lookup(file);
             res.set('Content-Type', type ? type : MIMEDEF);
-            res.send(200, data);
+            res.send(200, data.slice(rangeStart, rangeEnd));
             return;
         }
 
@@ -198,7 +201,7 @@ app.options("*", function(req, res) {
 // return the contents of a particular file within the specified range
 function fileData(file, rangeStart, rangeEnd, cb) {
 
-    
+
 
 }
 
