@@ -35,6 +35,8 @@ init(); // read config and start server
 // HEAD
 app.head("*", function(req, res) {
 
+    // TODO: emit request entry
+
     let file = config.storage.contentLocation + req.url;
     let resource = file.split('/')[file.split('/').length - 1];
 
@@ -62,18 +64,24 @@ app.head("*", function(req, res) {
 app.get("*", function(req, res) {
 
     // TODO: Add support for Range header
-    //       file reader should take no Range header as a request for byte range 0-<size of file>
     //       return a error 416 if upper range exceeds beyond length of file 
+    // TODO: emit request entry 
+
 
     let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
 
     let rangeStart = req.header('Range') ? req.header('Range').split('-')[0] : 0;
-    let rangeEnd = req.header('Range') ? req.header('Range').split('-')[1] : req.header('Content-Length');
+    let rangeEnd = req.header('Range') ? req.header('Range').split('-')[1] : req.header('Content-Length'); // ?
 
     if (!file) {
         res.send(400, 'Path is required');
         return;
     }
+
+    // TODO: have to stat file first, get length
+    //  no file, 404
+    //  range extends beyond file length, 416
+    // 
 
     fs.readFile(file, function(err, data) {
 
@@ -88,9 +96,20 @@ app.get("*", function(req, res) {
             }
 
         } else {
+
+            if (rangeEnd > data.length) {
+                res.json(416, {
+                    error: 'Range not satisfiable'
+                });
+                return;
+            }
+
             let type = mime.lookup(file);
             res.set('Content-Type', type ? type : MIMEDEF);
+            res.set('Range', rangeStart + '-' + rangeEnd);
             res.send(200, data.slice(rangeStart, rangeEnd));
+
+            // emit summary of response?
             return;
         }
 
@@ -100,6 +119,8 @@ app.get("*", function(req, res) {
 
 // PUT 
 app.put("*", function(req, res) {
+
+    // TODO: emit request entry
 
     let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
 
@@ -202,6 +223,23 @@ app.options("*", function(req, res) {
 function fileData(file, rangeStart, rangeEnd, cb) {
 
 
+
+}
+
+function validRange(file, header, cb) {
+
+    let valid = false;
+
+    fs.stat(file, function(err, stats) {
+
+        if (err) {
+
+        }
+
+    });
+
+    cb(valid);
+    return;
 
 }
 
