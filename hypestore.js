@@ -2,8 +2,10 @@
 //
 // rfc2616 server supporting transparent content 
 // storage and retrieval over HTTP
+//
 // TODO: Store MD5 of submitted request bodies?
 // TODO: filter for hypestore administrative pages (_ prefixed?)
+
 var express = require('express');
 var fs = require('fs');
 var app = express();
@@ -16,6 +18,7 @@ var mime = require('mime-types');
 var parseurl = require('parseurl');
 var resolvePath = require('resolve-path');
 var spawn = require('child_process').spawn;
+var events = require('events');
 
 var SUPPORT = 'GET, HEAD, PUT, DELETE, OPTIONS';
 var MIMEDEF = 'application/octet-stream';
@@ -26,16 +29,17 @@ app.use(express.cookieParser());
 app.use(express.bodyParser());
 app.use(function(req, res, next) {
     res.setHeader('X-Powered-By', 'HypeStore/0');
+    res.setHeader('Accept-Ranges', 'bytes');
     next();
 });
 app.use(express.methodOverride());
+
+var emitter = new events.EventEmitter();
 
 init(); // read config and start server
 
 // HEAD
 app.head("*", function(req, res) {
-
-    // TODO: emit request entry
 
     let file = config.storage.contentLocation + req.url;
     let resource = file.split('/')[file.split('/').length - 1];
@@ -53,7 +57,6 @@ app.head("*", function(req, res) {
                 return;
             }
         });
-
     } else {
         res.send(404);
         return;
@@ -68,119 +71,89 @@ app.get("*", function(req, res) {
     // TODO: emit request entry 
 
 
-    let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
+    // see if a range is desired with If-Range
+    // -> if so, check file stat, if modified after If-Range date or ETAG, send whole content w/ 200 OK
+    // -> otherwise, check desired range and return
 
-    let rangeStart = req.header('Range') ? req.header('Range').split('-')[0] : 0;
-    let rangeEnd = req.header('Range') ? req.header('Range').split('-')[1] : req.header('Content-Length'); // ?
+    let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
 
     if (!file) {
         res.send(400, 'Path is required');
         return;
     }
 
-    // TODO: have to stat file first, get length
-    //  no file, 404
-    //  range extends beyond file length, 416
-    // 
+    let range = req.header('Range') ? req.header('Range').split(" ")[1] : "0-*";
+    let rangeStart = range.split('-')[0];
+    let rangeEnd = range.split('-')[1];
 
-    fs.readFile(file, function(err, data) {
-
-        if (err) {
-            console.error("could not open file: " + file + ": " + util.inspect(err));
-            if (err.errno == -2) { // ENOENT: No such file or directory
-                res.json(404, err);
-                return;
-            } else {
-                res.json(500, err);
-                return;
-            }
-
-        } else {
-
-            if (rangeEnd > data.length) {
-                res.json(416, {
-                    error: 'Range not satisfiable'
-                });
-                return;
-            }
-
+    fs.stat(file, function(err, stats) {
+        if (!err) {
+            const stream = fs.createReadStream(file, {
+                start: parseInt(rangeStart),
+                end: (rangeEnd === '*') ? stats.size : parseInt(rangeEnd)
+            });
             let type = mime.lookup(file);
             res.set('Content-Type', type ? type : MIMEDEF);
-            res.set('Range', rangeStart + '-' + rangeEnd);
-            res.send(200, data.slice(rangeStart, rangeEnd));
-
-            // emit summary of response?
+            res.set('Content-Range', 'bytes ' + rangeStart + '-' + rangeEnd + '/' + stats.size);
+            stream.pipe(res);
             return;
+        } else {
+            switch (err.code) {
+                case 'ENOENT':
+                    res.send(404, 'Not found');
+                    return;
+                default:
+                    res.json(500, err);
+                    return;
+            }
         }
-
     });
-
 });
+
 
 // PUT 
 app.put("*", function(req, res) {
 
-    // TODO: emit request entry
-
+    // resource name
     let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
+    let exists = true;
+    fs.stat(file, function(err, stats) {
 
-    getRawBody(req, {
-        length: req.headers['Content-Length']
-    }, function(err, buffer) {
         if (err) {
-            console.log("error getting raw body: " + util.inspect(err));
-            res.json(500, err);
-            return;
-        } else {
-            let parts = [];
-            parts = req.url.split("/")
-            console.log("path split into " + parts.length + " parts");
-            let dirTree = config.storage.contentLocation + "/";
-            let resourceFile;
-
-            for (let i = 0; i < parts.length; i++) {
-                // first splitee will always be empty
-                if (i != 0) {
-                    // if we're still in the the dir structure
-                    if (i !== (parts.length - 1)) {
-                        dirTree += (parts[i] + "/");
-                    } else {
-                        // this is the "file" or "resource" component of the path
-                        resourceFile = parts[i];
-                    }
-                }
+            if (err.code === 'ENOENT') {
+                exists = false;
+            } else {
+                res.json(500, err);
+                return;
             }
-
-            let httpResponseCode;
-            fs.exists(dirTree, function(exists) {
-                if (!exists) {
-                    httpResponseCode = 201;
-                    mkdirp(dirTree, function(err) {
-                        if (err) {
-                            console.error("could not create directory: " + dirTree);
-                            res.json(500, err);
-                            return;
-                        } else {
-                            fs.exists(dirTree + "/" + resourceFile, function(exists) {
-                                httpResponseCode = exists ? 204 : 201;
-                                fs.writeFile(file, buffer, {
-                                    flag: 'w'
-                                }, function(err) {
-                                    if (err) {
-                                        res.json(500, err);
-                                        return;
-                                    } else {
-                                        res.send(httpResponseCode);
-                                        return;
-                                    }
-                                });
-                            });
-                        }
-                    });
-                }
-            });
         }
+
+        if (!exists) {
+            // run mkdirp to catch resource directory
+        }
+
+        getRawBody(req, {
+            length: req.headers['Content-Length']
+        }, function(err, buffer) {
+            if (err) {
+                res.json(500, err);
+                return;
+            } else {
+                fs.writeFile(file, buffer, {
+                    flags: 'w'
+                }, function(err) {
+                    if (err) {
+                        res.json(500, err);
+                        return;
+                    } else {
+                        res.send(exists ? 204 : 201);
+                        return;
+                    }
+                });
+            }
+        });
     });
+
 });
 
 // DELETE
@@ -218,30 +191,6 @@ app.options("*", function(req, res) {
     res.send(200);
     return;
 });
-
-// return the contents of a particular file within the specified range
-function fileData(file, rangeStart, rangeEnd, cb) {
-
-
-
-}
-
-function validRange(file, header, cb) {
-
-    let valid = false;
-
-    fs.stat(file, function(err, stats) {
-
-        if (err) {
-
-        }
-
-    });
-
-    cb(valid);
-    return;
-
-}
 
 function loadConfig() {
     if (fs.existsSync("./config.json")) {
