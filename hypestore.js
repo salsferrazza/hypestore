@@ -117,6 +117,8 @@ app.put("*", function(req, res) {
     // resource name
     let file = config.storage.contentLocation + decodeURIComponent(parseurl(req).pathname);
     let exists = true;
+    let len = req.headers['content-length'];
+
     fs.stat(file, function(err, stats) {
 
         if (err) {
@@ -133,7 +135,7 @@ app.put("*", function(req, res) {
         }
 
         getRawBody(req, {
-            length: req.headers['Content-Length']
+            length: len
         }, function(err, buffer) {
             if (err) {
                 res.json(500, err);
@@ -153,7 +155,6 @@ app.put("*", function(req, res) {
             }
         });
     });
-
 });
 
 // DELETE
