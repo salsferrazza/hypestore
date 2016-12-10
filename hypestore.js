@@ -36,9 +36,9 @@ app.use(express.methodOverride());
 
 var emitter = new events.EventEmitter();
 
-init(); // read config and start server
+init();
 
-// HEAD
+// HEAD //
 app.head("*", function(req, res) {
 
     let file = config.storage.contentLocation + req.url;
@@ -47,14 +47,14 @@ app.head("*", function(req, res) {
     if (file) {
         fs.stat(file, function(err, stats) {
             if (err) {
-		switch (err.code) {
-                case 'ENOENT':
-                    res.send(404, 'Not found');
-		    return;
-		default:
-		    res.json(500, err);
-		    return;
-		}
+                switch (err.code) {
+                    case 'ENOENT':
+                        res.send(404, 'Not found');
+                        return;
+                    default:
+                        res.json(500, err);
+                        return;
+                }
             } else {
                 let type = mime.lookup(file);
                 res.set('Content-Length', stats.size);
@@ -69,7 +69,7 @@ app.head("*", function(req, res) {
     }
 });
 
-// GET 
+// GET //
 app.get("*", function(req, res) {
 
     // TODO: Add support for Range header
@@ -117,7 +117,7 @@ app.get("*", function(req, res) {
 });
 
 
-// PUT 
+// PUT // 
 app.put("*", function(req, res) {
 
     // resource name
@@ -163,7 +163,7 @@ app.put("*", function(req, res) {
     });
 });
 
-// DELETE
+// DELETE //
 app.delete("*", function(req, res) {
     var file = config.storage.contentLocation + req.url;
     fs.exists(file, function(exists) {

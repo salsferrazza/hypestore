@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# PUT individual resources into hypestor, using a specific resource UUID per audio file
+# 
+#
+#
+# Expects to be executed from the hypestore/examples directory
+# Dependencies: curl, httpie
+
+HYPESRV=http://localhost:8888/audio
+
+cd files/audio
+
+for file in *.wav
+do 
+
+    # see if the hypestor knows the file
+    http --check-status -p h HEAD ${HYPESRV}/${file} && RET=$?
+    
+    if [ $RET != 0 ]
+    then
+	# PUT the files up there
+	echo curl -v -H "Content-Type: audio/wav" -X PUT --data "@./${file}" ${HYPESRV}/${file}
+#    else
+	# DELETE the files
+	
+	# then PUT the files
+    fi
+    
+
+done
+
