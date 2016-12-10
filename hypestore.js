@@ -47,8 +47,14 @@ app.head("*", function(req, res) {
     if (file) {
         fs.stat(file, function(err, stats) {
             if (err) {
-                res.json(500, err);
-                return;
+		switch (err.code) {
+                case 'ENOENT':
+                    res.send(404, 'Not found');
+		    return;
+		default:
+		    res.json(500, err);
+		    return;
+		}
             } else {
                 let type = mime.lookup(file);
                 res.set('Content-Length', stats.size);
